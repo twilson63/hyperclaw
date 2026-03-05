@@ -1,0 +1,8 @@
+# Base role defaults
+---
+nullclaw_user: nullclaw
+nullclaw_group: nullclaw
+nullclaw_home: "/home/{{ nullclaw_user }}"
+nullclaw_workspace: "{{ nullclaw_home }}/workspace"
+system_timezone: UTC
+system_locale: en_US.UTF-8

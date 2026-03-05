@@ -1,0 +1,9 @@
+# NullClaw role defaults
+---
+nullclaw_version: "latest"
+nullclaw_user: nullclaw
+nullclaw_group: nullclaw
+nullclaw_home: "/home/{{ nullclaw_user }}"
+nullclaw_workspace: "{{ nullclaw_home }}/workspace"
+ollama_port: 11434
+vm_memory_mb: 16384

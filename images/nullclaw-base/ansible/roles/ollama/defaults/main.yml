@@ -1,0 +1,5 @@
+# Ollama role defaults
+---
+ollama_version: "latest"
+ollama_model: "qwen3.5"
+ollama_port: 11434

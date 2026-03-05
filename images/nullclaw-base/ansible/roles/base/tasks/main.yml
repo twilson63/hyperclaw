@@ -1,0 +1,75 @@
+# Base System Role - Debian 12 Minimal Setup
+---
+- name: Create nullclaw user
+  ansible.builtin.user:
+    name: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    shell: /bin/bash
+    home: "{{ nullclaw_home }}"
+    create_home: true
+    system: false
+    groups:
+      - sudo
+      - systemd-journal
+  tags: ["user"]
+
+- name: Create nullclaw group
+  ansible.builtin.group:
+    name: "{{ nullclaw_group }}"
+    state: present
+  tags: ["user"]
+
+- name: Create workspace directory
+  ansible.builtin.file:
+    path: "{{ nullclaw_workspace }}"
+    state: directory
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    mode: '0755'
+  tags: ["workspace"]
+
+- name: Install essential packages
+  ansible.builtin.package:
+    name:
+      - curl
+      - wget
+      - git
+      - build-essential
+      - gnupg2
+      - lsb-release
+      - ca-certificates
+      - sudo
+      - vim
+      - jq
+      - htop
+      - tmux
+      - procps
+      - net-tools
+      - dnsutils
+      - nftables
+      - auditd
+    state: present
+  tags: ["packages"]
+
+- name: Set timezone to UTC
+  community.general.timezone:
+    name: "{{ system_timezone | default('UTC') }}"
+  tags: ["timezone"]
+
+- name: Set locale
+  ansible.builtin.locale_gen:
+    name: "{{ system_locale | default('en_US.UTF-8') }}"
+    state: present
+  tags: ["locale"]
+
+- name: Update all packages to latest
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: true
+  tags: ["upgrade", "never"]
+
+- name: Clean up apt cache
+  ansible.builtin.apt:
+    autoclean: true
+    autoremove: true
+  tags: ["cleanup"]

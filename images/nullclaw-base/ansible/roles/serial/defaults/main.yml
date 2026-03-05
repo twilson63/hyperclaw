@@ -1,0 +1,6 @@
+# Serial console role defaults
+---
+serial_baud_rate: 115200
+serial_device: ttyS0
+nullclaw_user: nullclaw
+ollama_model: qwen3.5

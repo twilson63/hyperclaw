@@ -1,0 +1,4 @@
+# Runtime role defaults
+---
+nodejs_version: "20"
+bun_version: "latest"

@@ -1,0 +1,119 @@
+# Serial Console Role - Configure for Firecracker stdin/stdout
+---
+- name: Configure kernel command line for serial console
+  ansible.builtin.template:
+    src: kernel-cmdline.j2
+    dest: /etc/default/grub.d/serial-console.cfg
+    owner: root
+    group: root
+    mode: '0644'
+  tags: ["serial", "kernel"]
+  when: ansible_os_family == "Debian"
+
+- name: Update GRUB configuration
+  ansible.builtin.command: update-grub
+  when: ansible_os_family == "Debian"
+  tags: ["serial", "kernel"]
+
+- name: Enable serial console in systemd
+  ansible.builtin.systemd:
+    name: serial-getty@ttyS0.service
+    enabled: true
+    state: started
+  tags: ["serial", "getty"]
+
+- name: Configure autologin for serial console
+  ansible.builtin.template:
+    src: serial-getty-override.conf.j2
+    dest: /etc/systemd/system/serial-getty@ttyS0.service.d/override.conf
+    owner: root
+    group: root
+    mode: '0644'
+  tags: ["serial", "autologin"]
+
+- name: Create systemd override directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/serial-getty@ttyS0.service.d
+    state: directory
+    mode: '0755'
+  tags: ["serial", "getty"]
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+  tags: ["serial", "systemd"]
+
+- name: Configure serial console as default console
+  ansible.builtin.copy:
+    content: |
+      # Serial console configuration
+      SERIAL_CONSOLE=/dev/ttyS0
+      SERIAL_BAUD=115200
+    dest: /etc/default/serial-console
+    owner: root
+    group: root
+    mode: '0644'
+  tags: ["serial", "config"]
+
+- name: Create inittab entry for serial console (fallback)
+  ansible.builtin.lineinfile:
+    path: /etc/inittab
+    line: 's0:12345:respawn:/sbin/agetty -L 115200 ttyS0 vt100'
+    regexp: 'ttyS0'
+    state: present
+    create: true
+  tags: ["serial", "inittab"]
+
+- name: Configure securetty for serial console
+  ansible.builtin.lineinfile:
+    path: /etc/securetty
+    line: 'ttyS0'
+    state: present
+    create: true
+  tags: ["serial", "securetty"]
+
+- name: Set terminal type for serial console
+  ansible.builtin.lineinfile:
+    path: "{{ nullclaw_home }}/.bashrc"
+    line: 'export TERM=vt100'
+    regexp: '^export TERM'
+    state: present
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+  tags: ["serial", "term"]
+
+- name: Disable graphical target (no GUI)
+  ansible.builtin.systemd:
+    name: multi-user.target
+    enabled: true
+  tags: ["serial", "headless"]
+
+- name: Set default target to multi-user
+  ansible.builtin.command: systemctl set-default multi-user.target
+  changed_when: true
+  tags: ["serial", "headless"]
+
+- name: Disable Plymouth splash screen
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    line: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"'
+    regexp: 'GRUB_CMDLINE_LINUX_DEFAULT'
+    state: absent
+  tags: ["serial", "boot"]
+
+- name: Add serial console parameters to GRUB
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    line: 'GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 console=tty0 panic=1"'
+    regexp: 'GRUB_CMDLINE_LINUX='
+    state: present
+  tags: ["serial", "boot"]
+
+- name: Create serial console profile script
+  ansible.builtin.template:
+    src: serial-profile.sh.j2
+    dest: /etc/profile.d/serial-console.sh
+    owner: root
+    group: root
+    mode: '0644'
+  tags: ["serial", "profile"]

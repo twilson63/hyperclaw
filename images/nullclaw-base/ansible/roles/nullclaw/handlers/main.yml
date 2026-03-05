@@ -1,0 +1,8 @@
+# NullClaw Role Handlers
+---
+- name: Enable NullClaw
+  ansible.builtin.systemd:
+    name: nullclaw
+    enabled: true
+    state: started
+    daemon_reload: true

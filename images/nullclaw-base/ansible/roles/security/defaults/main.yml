@@ -1,0 +1,5 @@
+# Security role defaults
+---
+firewall_enabled: true
+ssh_hardening: true
+nullclaw_user: nullclaw

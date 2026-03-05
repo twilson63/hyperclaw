@@ -1,0 +1,18 @@
+# Fail2ban configuration for NullClaw
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = 3
+findtime = 600
+bantime = 3600
+
+[recidive]
+enabled = true
+filter = recidive
+logpath = /var/log/fail2ban.log
+maxretry = 5
+findtime = 86400
+bantime = 604800

@@ -1,0 +1,16 @@
+{
+  "name": "hyperclaw",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": ["apps/*", "services/*"],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:api": "cd apps/api && bun run dev",
+    "dev:dashboard": "cd apps/dashboard && bun run dev",
+    "install:all": "bun install",
+    "db:init": "cd apps/api && bun run db:init"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

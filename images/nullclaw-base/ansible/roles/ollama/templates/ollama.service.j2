@@ -1,0 +1,23 @@
+[Unit]
+Description=Ollama Service
+Documentation=https://ollama.ai
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ollama serve
+Restart=always
+RestartSec=3
+Environment="OLLAMA_HOST=0.0.0.0:{{ ollama_port }}"
+Environment="OLLAMA_ORIGINS=*"
+User={{ nullclaw_user }}
+Group={{ nullclaw_group }}
+WorkingDirectory={{ nullclaw_home }}
+
+# Memory and CPU limits
+MemoryMax={{ (vm_memory_mb * 0.8) | int }}M
+CPUQuota={{ (vm_cpus * 100) }}%
+
+[Install]
+WantedBy=multi-user.target

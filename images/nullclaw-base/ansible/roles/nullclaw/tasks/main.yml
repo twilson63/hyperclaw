@@ -1,0 +1,143 @@
+# NullClaw Role - Install NullClaw Binary
+---
+- name: Create NullClaw directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - /opt/nullclaw
+    - /etc/nullclaw
+    - /var/log/nullclaw
+  tags: ["nullclaw", "dirs"]
+
+- name: Determine NullClaw download URL
+  ansible.builtin.set_fact:
+    nullclaw_arch: "{{ 'arm64' if ansible_architecture == 'aarch64' else 'x86_64' }}"
+    nullclaw_suffix: "{{ 'latest' if nullclaw_version == 'latest' else 'tag/v' + nullclaw_version }}"
+  tags: ["nullclaw", "download"]
+
+- name: Download NullClaw binary
+  ansible.builtin.get_url:
+    url: "https://github.com/forward-research/nullclaw/releases/download/{{ nullclaw_suffix }}/nullclaw-linux-{{ nullclaw_arch }}"
+    dest: /tmp/nullclaw
+    mode: '0755'
+    timeout: 60
+  retries: 3
+  delay: 5
+  register: download_result
+  until: download_result is success
+  tags: ["nullclaw", "download"]
+
+- name: Install NullClaw binary
+  ansible.builtin.copy:
+    src: /tmp/nullclaw
+    dest: /usr/local/bin/nullclaw
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: true
+  tags: ["nullclaw", "install"]
+
+- name: Verify NullClaw installation
+  ansible.builtin.command: /usr/local/bin/nullclaw --version
+  register: nullclaw_version_output
+  changed_when: false
+  failed_when: false
+  tags: ["nullclaw", "verify"]
+
+- name: Display NullClaw version
+  ansible.builtin.debug:
+    msg: "NullClaw {{ nullclaw_version_output.stdout | default('installed') }}"
+  tags: ["nullclaw", "verify"]
+
+- name: Create NullClaw configuration directory for nullclaw user
+  ansible.builtin.file:
+    path: "{{ nullclaw_home }}/.config/nullclaw"
+    state: directory
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    mode: '0755'
+  tags: ["nullclaw", "config"]
+
+- name: Create NullClaw workspace
+  ansible.builtin.file:
+    path: "{{ nullclaw_workspace }}"
+    state: directory
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    mode: '0755'
+  tags: ["nullclaw", "workspace"]
+
+- name: Generate default NullClaw configuration
+  ansible.builtin.template:
+    src: nullclaw.yaml.j2
+    dest: /etc/nullclaw/config.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  tags: ["nullclaw", "config"]
+
+- name: Create NullClaw systemd service
+  ansible.builtin.template:
+    src: nullclaw.service.j2
+    dest: /etc/systemd/system/nullclaw.service
+    mode: '0644'
+  notify: Enable NullClaw
+  tags: ["nullclaw", "systemd"]
+
+- name: Create NullClaw agent identity file
+  ansible.builtin.template:
+    src: identity.yaml.j2
+    dest: "{{ nullclaw_home }}/.config/nullclaw/identity.yaml"
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    mode: '0600'
+  tags: ["nullclaw", "identity"]
+
+- name: Create NullClaw SOUL.md
+  ansible.builtin.copy:
+    src: SOUL.md
+    dest: "{{ nullclaw_workspace }}/SOUL.md"
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    mode: '0644'
+  tags: ["nullclaw", "soul"]
+
+- name: Create NullClaw MEMORY.md
+  ansible.builtin.copy:
+    content: "# NullClaw Long-Term Memory\n\n*Agent memory will be populated here.*\n"
+    dest: "{{ nullclaw_workspace }}/MEMORY.md"
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    mode: '0644'
+  tags: ["nullclaw", "memory"]
+
+- name: Create NullClaw AGENTS.md
+  ansible.builtin.copy:
+    src: AGENTS.md
+    dest: "{{ nullclaw_workspace }}/AGENTS.md"
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    mode: '0644'
+  tags: ["nullclaw", "agents"]
+
+- name: Set workspace permissions
+  ansible.builtin.file:
+    path: "{{ nullclaw_workspace }}"
+    state: directory
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+    mode: '0755'
+    recurse: true
+  tags: ["nullclaw", "permissions"]
+
+- name: Clean up temporary files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/nullclaw
+  tags: ["nullclaw", "cleanup"]

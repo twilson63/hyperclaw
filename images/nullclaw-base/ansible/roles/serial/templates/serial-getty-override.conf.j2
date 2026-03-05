@@ -1,0 +1,5 @@
+# Serial Getty Override - Autologin for NullClaw
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin {{ nullclaw_user }} --keep-baud 115200,38400,9600 ttyS0 $TERM
+Type=idle

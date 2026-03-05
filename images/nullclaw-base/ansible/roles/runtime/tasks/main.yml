@@ -1,0 +1,104 @@
+# Runtime Role - Install Node.js and Bun
+---
+- name: Add NodeSource GPG key
+  ansible.builtin.apt_key:
+    url: "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key"
+    state: present
+  tags: ["nodejs"]
+
+- name: Add NodeSource repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_{{ nodejs_version }}.x nodistro main"
+    filename: nodesource
+    state: present
+    update_cache: true
+  tags: ["nodejs"]
+
+- name: Install Node.js
+  ansible.builtin.package:
+    name: "nodejs"
+    state: present
+  tags: ["nodejs"]
+
+- name: Create Node.js keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  tags: ["nodejs"]
+
+- name: Download Node.js GPG key
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+    creates: /etc/apt/keyrings/nodesource.gpg
+  tags: ["nodejs"]
+
+- name: Install Node.js
+  ansible.builtin.apt:
+    name: nodejs
+    state: present
+    update_cache: true
+  tags: ["nodejs"]
+
+- name: Verify Node.js installation
+  ansible.builtin.command: node --version
+  register: node_version_output
+  changed_when: false
+  tags: ["nodejs", "verify"]
+
+- name: Display Node.js version
+  ansible.builtin.debug:
+    msg: "Node.js {{ node_version_output.stdout }} installed"
+  tags: ["nodejs", "verify"]
+
+- name: Install Bun for nullclaw user
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://bun.sh/install | bash
+    creates: "{{ nullclaw_home }}/.bun/bin/bun"
+  become: true
+  become_user: "{{ nullclaw_user }}"
+  environment:
+    BUN_INSTALL: "{{ nullclaw_home }}/.bun"
+  tags: ["bun"]
+
+- name: Add Bun to PATH for nullclaw user
+  ansible.builtin.lineinfile:
+    path: "{{ nullclaw_home }}/.bashrc"
+    line: 'export BUN_INSTALL="$HOME/.bun" && export PATH="$BUN_INSTALL/bin:$PATH"'
+    regexp: 'BUN_INSTALL'
+    state: present
+    create: true
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+  tags: ["bun"]
+
+- name: Verify Bun installation
+  ansible.builtin.shell: "{{ nullclaw_home }}/.bun/bin/bun --version"
+  register: bun_version_output
+  become: true
+  become_user: "{{ nullclaw_user }}"
+  changed_when: false
+  tags: ["bun", "verify"]
+
+- name: Display Bun version
+  ansible.builtin.debug:
+    msg: "Bun {{ bun_version_output.stdout }} installed"
+  tags: ["bun", "verify"]
+
+- name: Configure npm for nullclaw user
+  ansible.builtin.shell: |
+    npm config set prefix {{ nullclaw_home }}/.npm-global
+    npm config set cache {{ nullclaw_home }}/.npm-cache
+  become: true
+  become_user: "{{ nullclaw_user }}"
+  tags: ["npm"]
+
+- name: Add npm global packages to PATH
+  ansible.builtin.lineinfile:
+    path: "{{ nullclaw_home }}/.bashrc"
+    line: 'export PATH="$HOME/.npm-global/bin:$PATH"'
+    regexp: 'npm-global'
+    state: present
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+  tags: ["npm"]

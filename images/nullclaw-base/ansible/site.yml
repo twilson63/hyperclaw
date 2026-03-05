@@ -1,0 +1,89 @@
+# NullClaw Base Image - Main Playbook
+# Provisions a Debian 12 VM with Ollama, Qwen 3.5, and NullClaw
+
+---
+- name: Provision NullClaw Base Image
+  hosts: all
+  become: true
+  gather_facts: true
+  
+  vars:
+    # User configuration
+    nullclaw_user: nullclaw
+    nullclaw_group: nullclaw
+    nullclaw_home: "/home/{{ nullclaw_user }}"
+    nullclaw_workspace: "{{ nullclaw_home }}/workspace"
+    
+    # Software versions
+    nodejs_version: "20"
+    bun_version: "latest"
+    ollama_version: "latest"
+    nullclaw_version: "{{ nullclaw_version_override | default('latest') }}"
+    
+    # Model configuration
+    ollama_model: "{{ qwen_model | default('qwen3.5') }}"
+    ollama_port: 11434
+    
+    # System configuration
+    vm_memory_mb: 16384
+    vm_cpus: 4
+    
+    # Security
+    firewall_enabled: true
+    ssh_hardening: true
+
+  pre_tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      tags: ["always"]
+
+    - name: Install essential packages
+      ansible.builtin.package:
+        name:
+          - curl
+          - wget
+          - git
+          - build-essential
+          - gnupg2
+          - lsb-release
+          - ca-certificates
+          - sudo
+          - vim
+        state: present
+      tags: ["base"]
+
+  roles:
+    - role: base
+      tags: ["base"]
+    - role: runtime
+      tags: ["runtime"]
+    - role: ollama
+      tags: ["ollama"]
+    - role: nullclaw
+      tags: ["nullclaw"]
+    - role: serial
+      tags: ["serial"]
+    - role: security
+      tags: ["security"]
+
+  post_tasks:
+    - name: Display build summary
+      ansible.builtin.debug:
+        msg: |
+          NullClaw Base Image Provisioned Successfully!
+          
+          - Node.js: {{ nodejs_version }}
+          - Bun: {{ bun_version }}
+          - Ollama: {{ ollama_version }}
+          - Qwen Model: {{ ollama_model }}
+          - NullClaw: {{ nullclaw_version }}
+          - Memory: {{ vm_memory_mb }} MB
+          - CPUs: {{ vm_cpus }}
+          
+          Next steps:
+          1. Create snapshot with scripts/create-snapshot.sh
+          2. Boot VM with scripts/boot-snapshot.sh
+      tags: ["summary"]
+...

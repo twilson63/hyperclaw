@@ -1,0 +1,45 @@
+# SSH Hardening Configuration
+
+# Disable root login
+PermitRootLogin no
+
+# Use SSH protocol 2 only
+Protocol 2
+
+# Disable password authentication (key-only)
+PasswordAuthentication no
+PubkeyAuthentication yes
+
+# Disable empty passwords
+PermitEmptyPasswords no
+
+# Disable X11 forwarding
+X11Forwarding no
+
+# Reduce login grace time
+LoginGraceTime 60
+
+# Limit maximum authentication attempts
+MaxAuthTries 3
+
+# Disconnect after max attempts
+MaxStartups 3:50:10
+
+# Enable strict modes
+StrictModes yes
+
+# Log level
+LogLevel VERBOSE
+
+# Idle timeout interval
+ClientAliveInterval 300
+ClientAliveCountMax 2
+
+# Allow only nullclaw user
+AllowUsers nullclaw
+
+# Disable agent forwarding
+AllowAgentForwarding no
+
+# Disable tunneling
+PermitTunnel no

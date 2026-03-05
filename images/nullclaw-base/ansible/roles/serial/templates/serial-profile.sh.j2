@@ -1,0 +1,22 @@
+# Serial Console Profile Configuration
+# Sets up environment for serial console sessions
+
+# Set terminal type
+export TERM=vt100
+
+# Disable line wrapping confusion
+export COLUMNS=80
+export LINES=24
+
+# Set prompt to indicate serial console
+if [ "$(tty)" = "/dev/ttyS0" ]; then
+    export PS1="[\u@nullclaw \W]\$ "
+fi
+
+# Welcome message for serial console
+if [ "$(tty)" = "/dev/ttyS0" ] && [ -z "$NULLCLAW_WELCOMED" ]; then
+    echo "Welcome to NullClaw VM (Serial Console)"
+    echo "Model: {{ ollama_model }}"
+    echo ""
+    export NULLCLAW_WELCOMED=1
+fi

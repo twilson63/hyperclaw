@@ -1,0 +1,88 @@
+# Ollama Role - Install Ollama and Download Qwen Model
+---
+- name: Download Ollama install script
+  ansible.builtin.get_url:
+    url: https://ollama.ai/install.sh
+    dest: /tmp/ollama-install.sh
+    mode: '0755'
+  tags: ["ollama", "install"]
+
+- name: Install Ollama
+  ansible.builtin.shell: /tmp/ollama-install.sh
+  args:
+    creates: /usr/local/bin/ollama
+  environment:
+    OLLAMA_VERSION: "{{ ollama_version }}"
+  tags: ["ollama", "install"]
+
+- name: Create Ollama systemd service directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/ollama.service.d
+    state: directory
+    mode: '0755'
+  tags: ["ollama", "systemd"]
+
+- name: Create Ollama systemd service
+  ansible.builtin.template:
+    src: ollama.service.j2
+    dest: /etc/systemd/system/ollama.service
+    mode: '0644'
+  notify: Restart Ollama
+  tags: ["ollama", "systemd"]
+
+- name: Enable and start Ollama service
+  ansible.builtin.systemd:
+    name: ollama
+    enabled: true
+    daemon_reload: true
+    state: started
+  tags: ["ollama", "systemd"]
+
+- name: Wait for Ollama to be ready
+  ansible.builtin.wait_for:
+    port: "{{ ollama_port }}"
+    host: 127.0.0.1
+    timeout: 120
+  tags: ["ollama", "model"]
+
+- name: Pull Qwen model
+  ansible.builtin.command: "ollama pull {{ ollama_model }}"
+  become: true
+  become_user: "{{ nullclaw_user }}"
+  register: model_pull
+  retries: 3
+  delay: 10
+  until: model_pull.rc == 0
+  tags: ["ollama", "model"]
+
+- name: Verify Qwen model installed
+  ansible.builtin.command: ollama list
+  become: true
+  become_user: "{{ nullclaw_user }}"
+  register: ollama_list
+  changed_when: false
+  tags: ["ollama", "model", "verify"]
+
+- name: Display installed models
+  ansible.builtin.debug:
+    msg: "{{ ollama_list.stdout_lines }}"
+  tags: ["ollama", "model", "verify"]
+
+- name: Configure Ollama for auto-start
+  ansible.builtin.lineinfile:
+    path: /etc/environment
+    line: "OLLAMA_HOST=0.0.0.0:{{ ollama_port }}"
+    regexp: 'OLLAMA_HOST'
+    state: present
+    create: true
+  tags: ["ollama", "config"]
+
+- name: Set Ollama model as default for nullclaw user
+  ansible.builtin.lineinfile:
+    path: "{{ nullclaw_home }}/.bashrc"
+    line: "export OLLAMA_DEFAULT_MODEL={{ ollama_model }}"
+    regexp: 'OLLAMA_DEFAULT_MODEL'
+    state: present
+    owner: "{{ nullclaw_user }}"
+    group: "{{ nullclaw_group }}"
+  tags: ["ollama", "config"]

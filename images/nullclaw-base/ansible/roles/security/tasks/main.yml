@@ -1,0 +1,159 @@
+# Security Role - Harden the VM Image
+---
+- name: Install security packages
+  ansible.builtin.package:
+    name:
+      - nftables
+      - auditd
+      - fail2ban
+      - rkhunter
+      - chkrootkit
+      - logwatch
+    state: present
+  tags: ["security", "packages"]
+
+- name: Configure nftables firewall
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: 'nft -c -f %s'
+  when: firewall_enabled | default(true)
+  tags: ["security", "firewall"]
+
+- name: Enable nftables
+  ansible.builtin.systemd:
+    name: nftables
+    enabled: true
+    state: started
+  when: firewall_enabled | default(true)
+  tags: ["security", "firewall"]
+
+- name: Configure auditd rules
+  ansible.builtin.copy:
+    src: audit.rules
+    dest: /etc/audit/rules.d/audit.rules
+    owner: root
+    group: root
+    mode: '0640'
+  notify: Restart auditd
+  tags: ["security", "audit"]
+
+- name: Enable auditd
+  ansible.builtin.systemd:
+    name: auditd
+    enabled: true
+    state: started
+  tags: ["security", "audit"]
+
+- name: Disable unnecessary services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop:
+    - bluetooth
+    - cups
+    - avahi-daemon
+    - ModemManager
+  failed_when: false
+  tags: ["security", "services"]
+
+- name: Configure SSH hardening
+  ansible.builtin.template:
+    src: sshd_hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/hardening.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: ssh_hardening | default(true)
+  notify: Restart SSH
+  tags: ["security", "ssh"]
+
+- name: Set password policies
+  ansible.builtin.lineinfile:
+    path: /etc/login.defs
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: '^PASS_MAX_DAYS', line: 'PASS_MAX_DAYS 90' }
+    - { regexp: '^PASS_MIN_DAYS', line: 'PASS_MIN_DAYS 7' }
+    - { regexp: '^PASS_WARN_AGE', line: 'PASS_WARN_AGE 14' }
+  tags: ["security", "passwords"]
+
+- name: Configure sysctl security parameters
+  ansible.builtin.template:
+    src: sysctl-security.conf.j2
+    dest: /etc/sysctl.d/99-security.conf
+    owner: root
+    group: root
+    mode: '0644'
+  tags: ["security", "sysctl"]
+
+- name: Apply sysctl changes
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/99-security.conf
+  changed_when: true
+  tags: ["security", "sysctl"]
+
+- name: Disable root login
+  ansible.builtin.user:
+    name: root
+    password_lock: true
+  tags: ["security", "root"]
+
+- name: Configure fail2ban
+  ansible.builtin.template:
+    src: fail2ban.conf.j2
+    dest: /etc/fail2ban/jail.d/nullclaw.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart fail2ban
+  tags: ["security", "fail2ban"]
+
+- name: Enable fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    state: started
+  tags: ["security", "fail2ban"]
+
+- name: Restrict /tmp directory
+  ansible.builtin.mount:
+    path: /tmp
+    src: tmpfs
+    fstype: tmpfs
+    opts: "defaults,noexec,nosuid,nodev,size=1G"
+    state: mounted
+  tags: ["security", "tmp"]
+
+- name: Restrict /var/tmp directory
+  ansible.builtin.mount:
+    path: /var/tmp
+    src: tmpfs
+    fstype: tmpfs
+    opts: "defaults,noexec,nosuid,nodev,size=512M"
+    state: mounted
+  tags: ["security", "tmp"]
+
+- name: Remove unnecessary packages
+  ansible.builtin.package:
+    name:
+      - telnet
+      - rsh-client
+      - rsh-redone-client
+      - talk
+    state: absent
+  tags: ["security", "packages"]
+
+- name: Configure log rotation
+  ansible.builtin.template:
+    src: logrotate-nullclaw.conf.j2
+    dest: /etc/logrotate.d/nullclaw
+    owner: root
+    group: root
+    mode: '0644'
+  tags: ["security", "logs"]

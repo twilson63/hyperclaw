@@ -1,0 +1,42 @@
+# nftables firewall configuration for NullClaw
+
+#!/usr/sbin/nft -f
+
+# Flush existing rules
+flush ruleset
+
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        
+        # Allow loopback
+        iif lo accept
+        
+        # Allow established/related connections
+        ct state established,related accept
+        
+        # Drop invalid packets
+        ct state invalid drop
+        
+        # Allow ICMP (ping)
+        ip protocol icmp accept
+        ip6 nexthdr icmpv6 accept
+        
+        # Allow Ollama API (local only)
+        iif lo tcp dport 11434 accept
+        
+        # Allow SSH (rate limited)
+        tcp dport 22 ct state new limit rate 3/minute accept
+        
+        # Log dropped packets
+        log prefix "nftables drop: " flags all counter drop
+    }
+    
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+    }
+    
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}

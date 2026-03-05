@@ -1,0 +1,23 @@
+/var/log/nullclaw/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0644 nullclaw nullclaw
+    sharedscripts
+    postrotate
+        systemctl reload nullclaw > /dev/null 2>&1 || true
+    endscript
+}
+
+/var/log/ollama/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    create 0644 nullclaw nullclaw
+}

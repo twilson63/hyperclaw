@@ -1,0 +1,34 @@
+# NullClaw Configuration
+# https://nullclaw.org/docs/configuration
+
+provider: ollama
+model: {{ ollama_model }}
+workspace: {{ nullclaw_workspace }}
+
+# API Configuration
+providers:
+  ollama:
+    host: http://127.0.0.1:{{ ollama_port }}
+    timeout: 300
+
+# Security
+security:
+  sandbox:
+    backend: none  # Firecracker provides isolation
+  audit:
+    enabled: true
+    path: /var/log/nullclaw/audit.log
+
+# Channels (configure per deployment)
+channels: []
+
+# Memory
+memory:
+  backend: sqlite
+  path: {{ nullclaw_home }}/.local/share/nullclaw/memory.db
+
+# Logging
+logging:
+  level: info
+  format: json
+  path: /var/log/nullclaw/nullclaw.log

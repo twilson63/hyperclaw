@@ -1,0 +1,34 @@
+# Kernel Command Line for Firecracker VM
+# Optimized for serial console and fast boot
+
+# Console configuration (required for Firecracker)
+console=ttyS0,115200n8
+
+# Kernel behavior
+panic=1
+reboot=k
+
+# Boot optimization
+quiet
+loglevel=3
+
+# Disable unnecessary features
+sysvinit:/
+no_timer_check
+
+# Networking
+net.ifnames=0
+biosdevname=0
+
+# Hostname
+hostname=nullclaw
+
+# Root filesystem
+root=/dev/vda
+rw
+
+# Init
+init=/sbin/init
+
+# Systemd
+systemd.unit=multi-user.target

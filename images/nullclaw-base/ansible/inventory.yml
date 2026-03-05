@@ -1,0 +1,18 @@
+# Inventory for NullClaw Base Image Provisioning
+# Used with Packer QEMU builder
+
+---
+all:
+  hosts:
+    nullclaw-base:
+      ansible_connection: ssh
+      ansible_user: nullclaw
+      ansible_password: nullclaw
+      ansible_port: 22
+      ansible_host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+      
+  vars:
+    # System-wide defaults
+    system_timezone: UTC
+    system_locale: en_US.UTF-8
+...

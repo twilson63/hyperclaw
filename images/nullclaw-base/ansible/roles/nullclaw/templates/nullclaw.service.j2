@@ -1,0 +1,38 @@
+[Unit]
+Description=NullClaw Agent Service
+Documentation=https://nullclaw.org
+After=ollama.target network-online.target
+Wants=network-online.target ollama.service
+Requires=ollama.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/nullclaw daemon --provider ollama --model {{ ollama_model }} --workspace {{ nullclaw_workspace }}
+Restart=on-failure
+RestartSec=5
+User={{ nullclaw_user }}
+Group={{ nullclaw_group }}
+WorkingDirectory={{ nullclaw_home }}
+
+# Environment
+Environment="NULLCLAW_PROVIDER=ollama"
+Environment="NULLCLAW_MODEL={{ ollama_model }}"
+Environment="OLLAMA_HOST=http://127.0.0.1:{{ ollama_port }}"
+Environment="SHELL=/bin/bash"
+
+# Security - use sandbox backend set to none for Firecracker (already isolated)
+Environment="NULLCLAW_SANDBOX_BACKEND=none"
+
+# Resource limits (NullClaw is lightweight)
+MemoryMax={{ (vm_memory_mb * 0.1) | int }}M
+CPUQuota=10%
+
+# Stdin/stdout for serial console
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/ttyS0
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=multi-user.target

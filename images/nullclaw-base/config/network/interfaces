@@ -1,0 +1,16 @@
+# Network configuration for NullClaw VM
+# DHCP for eth0 with automatic DNS
+
+auto lo
+iface lo inet loopback
+
+# Primary network interface (DHCP)
+auto eth0
+iface eth0 inet dhcp
+    hostname nullclaw
+    
+    # DNS configuration (obtained via DHCP)
+    dns-nameservers dynamic
+
+# IPv6 autoconfiguration
+iface eth0 inet6 auto

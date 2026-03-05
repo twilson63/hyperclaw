@@ -1,0 +1,7 @@
+# Kernel command line for Firecracker serial console
+# This file is sourced by GRUB
+
+GRUB_CMDLINE_LINUX_DEFAULT=""
+GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 earlyprintk=serial panic=1 quiet"
+GRUB_TERMINAL=serial
+GRUB_SERIAL_COMMAND="serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"
